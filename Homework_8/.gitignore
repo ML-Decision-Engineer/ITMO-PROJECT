@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+.env
+.idea/
+.vscode/
+.DS_Store
+
+# Runtime data
+postgres_data/
+rabbitmq_data/
+
+# Local logs
+*.log
+
+

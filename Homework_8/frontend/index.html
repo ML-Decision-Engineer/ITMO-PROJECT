@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Прогноз дефектов продукции</title>
+
+  <style>
+    :root {
+      font-family: Inter, Arial, sans-serif;
+
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --sidebar: #111827;
+
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --muted: #64748b;
+
+      --border: #d8e0eb;
+      --border-strong: #b8c4d4;
+
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-soft: #dbeafe;
+
+      --success: #15803d;
+      --success-dark: #14532d;
+      --success-soft: #dcfce7;
+
+      --danger: #b42318;
+      --danger-dark: #7f1d1d;
+      --danger-soft: #fee2e2;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    a:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, 0.35);
+      outline-offset: 2px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 285px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      padding: 28px 22px;
+      background: var(--sidebar);
+      color: #f8fafc;
+    }
+
+    .sidebar h2 {
+        margin: 0 0 16px;
+        padding-bottom: 14px;
+        border-bottom: 3px solid #2563eb;
+        font-size: 21px;
+    }
+
+    .sidebar-row {
+      margin-bottom: 16px;
+      line-height: 1.45;
+    }
+
+    .sidebar-label {
+      display: block;
+      margin-bottom: 4px;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+
+    .sidebar-value {
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+
+    .sidebar-caption {
+      margin: 24px 0;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .sidebar a {
+      color: #93c5fd;
+      font-weight: 600;
+    }
+
+    .sidebar a:hover {
+      color: #dbeafe;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 3px 9px;
+      border: 1px solid;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    .status-loading {
+      border-color: #93c5fd;
+      background: rgba(30, 64, 175, 0.38);
+      color: #dbeafe;
+    }
+
+    .status-ok {
+      border-color: #4ade80;
+      background: rgba(22, 101, 52, 0.45);
+      color: #dcfce7;
+    }
+
+    .status-error {
+      border-color: #fca5a5;
+      background: rgba(153, 27, 27, 0.48);
+      color: #fee2e2;
+    }
+
+    .main {
+      width: 100%;
+      max-width: 1550px;
+      margin: 0 auto;
+      padding: 38px 44px 70px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.15;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    h3 {
+      margin-top: 28px;
+    }
+
+    .subtitle {
+      margin-top: 14px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 30px 0 34px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab-button {
+      padding: 12px 16px;
+      border: 0;
+      border-bottom: 3px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .tab-button:hover {
+      color: var(--text);
+    }
+
+    .tab-button.active {
+      border-bottom-color: var(--primary);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .panel {
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .description {
+      margin-bottom: 24px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+    }
+
+
+    /* Выравнивание select и кнопки в суточном прогнозе */
+    #daily-page .button-row {
+        align-items: flex-start;
+    }
+
+    #daily-button {
+        margin-top: 25px;
+    }
+
+    .primary-button,
+    .secondary-button {
+      min-height: 42px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .primary-button {
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .primary-button:hover {
+      border-color: var(--primary-hover);
+      background: var(--primary-hover);
+    }
+
+    .secondary-button {
+      border: 1px solid var(--border-strong);
+      background: #ffffff;
+      color: #1e293b;
+    }
+
+    .secondary-button:hover {
+      background: #eef2f7;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .field {
+      min-width: 280px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    select {
+      width: 100%;
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .alert {
+      display: none;
+      margin: 20px 0;
+      padding: 14px 16px;
+      border: 1px solid;
+      border-radius: 8px;
+      line-height: 1.45;
+    }
+
+    .alert.visible {
+      display: block;
+    }
+
+    .alert.info {
+      border-color: #93c5fd;
+      background: #eff6ff;
+      color: #1e3a8a;
+    }
+
+    .alert.success {
+      border-color: #86efac;
+      background: var(--success-soft);
+      color: var(--success-dark);
+    }
+
+    .alert.error {
+      border-color: #fca5a5;
+      background: var(--danger-soft);
+      color: var(--danger-dark);
+    }
+
+    .loader {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      border: 2px solid #bfdbfe;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      vertical-align: -3px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 14px;
+      margin: 22px 0;
+    }
+
+    .metric {
+      padding: 17px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric-value {
+      margin-top: 9px;
+      color: #17233d;
+      font-size: 27px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-success {
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+
+    .metric-success .metric-value {
+      color: var(--success-dark);
+    }
+
+    .metric-danger {
+      border-color: #fca5a5;
+      background: #fff7f7;
+    }
+
+    .metric-danger .metric-value {
+      color: var(--danger-dark);
+    }
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 15px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      white-space: nowrap;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid #e5eaf1;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #eaf0f7;
+      color: #334155;
+      font-weight: 700;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    tbody tr:hover {
+      background: var(--primary-soft);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .details {
+      margin-top: 28px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    .badge-normal {
+      background: var(--success-soft);
+      color: var(--success-dark);
+    }
+
+    .badge-defect {
+      background: var(--danger-soft);
+      color: var(--danger-dark);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 850px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        padding: 20px;
+      }
+
+      .main {
+        padding: 28px 18px 50px;
+      }
+
+      .tabs {
+        overflow-x: auto;
+      }
+
+      .tab-button {
+        flex: 0 0 auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <h2>Состояние сервиса</h2>
+
+    <div class="sidebar-row">
+      <span class="sidebar-label">Модель</span>
+      <span id="model-name" class="sidebar-value">Загрузка...</span>
+    </div>
+
+    <div class="sidebar-row">
+      <span class="sidebar-label">Версия</span>
+      <span id="model-version" class="sidebar-value">—</span>
+    </div>
+
+    <div class="sidebar-row">
+      <span class="sidebar-label">Признаков</span>
+      <span id="feature-count" class="sidebar-value">—</span>
+    </div>
+
+    <div class="sidebar-row">
+      <span class="sidebar-label">Raw-порог класса</span>
+      <span id="model-threshold" class="sidebar-value">—</span>
+    </div>
+
+    <div class="sidebar-row">
+      <span class="sidebar-label">Общий статус</span>
+      <span
+        id="service-status"
+        class="sidebar-value status-pill status-loading"
+      >
+        Загрузка...
+      </span>
+    </div>
+
+    <div class="sidebar-row">
+      <span class="sidebar-label">RabbitMQ</span>
+      <span
+        id="rabbitmq-status"
+        class="sidebar-value status-pill status-loading"
+      >
+        Загрузка...
+      </span>
+    </div>
+
+    <p>
+      <a
+        href="/api/docs"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Swagger REST API
+      </a>
+    </p>
+  </aside>
+
+  <main class="main">
+    <h1>ML-сервис раннего прогнозирования дефектов продукции</h1>
+
+    <p class="subtitle">
+      Одиночный прогноз выполняется сразу.
+      Суточный расчёт ставится в RabbitMQ
+      и обрабатывается отдельным масштабируемым ML-воркером.
+    </p>
+
+    <nav class="tabs">
+      <button
+        class="tab-button active"
+        data-page="single-page"
+        type="button"
+      >
+        Одиночный прогноз
+      </button>
+
+      <button
+        class="tab-button"
+        data-page="daily-page"
+        type="button"
+      >
+        Суточный прогноз
+      </button>
+
+      <button
+        class="tab-button"
+        data-page="history-page"
+        type="button"
+      >
+        История
+      </button>
+    </nav>
+
+    <section id="single-page" class="page active panel">
+      <h2>Прогноз для одной случайной единицы продукции</h2>
+
+      <p class="description">
+        Сервис выбирает случайную строку из обезличенного
+        HOLDOUT-датасета. Фактический таргет не передаётся
+        модели и используется только для сравнения.
+      </p>
+
+      <button
+        id="single-button"
+        class="primary-button"
+        type="button"
+      >
+        Выполнить прогноз по случайной строке
+      </button>
+
+      <div id="single-alert" class="alert"></div>
+      <div id="single-result" class="details"></div>
+    </section>
+
+    <section id="daily-page" class="page panel">
+      <h2>Асинхронный расчёт за производственный день</h2>
+
+      <div class="button-row">
+        <div class="field">
+          <label for="production-day">Производственный день</label>
+
+          <select id="production-day">
+            <option value="">Загрузка...</option>
+          </select>
+
+          <div
+            id="day-row-count"
+            class="muted"
+            style="margin-top: 7px;"
+          ></div>
+        </div>
+
+        <button
+          id="daily-button"
+          class="primary-button"
+          type="button"
+        >
+          Рассчитать прогноз за день
+        </button>
+      </div>
+
+      <div id="daily-alert" class="alert"></div>
+      <div id="daily-result" class="details"></div>
+    </section>
+
+    <section id="history-page" class="page panel">
+      <div class="button-row">
+        <h2 style="margin: 0 auto 0 0;">
+          История запусков из PostgreSQL
+        </h2>
+
+        <button
+          id="history-refresh-button"
+          class="secondary-button"
+          type="button"
+        >
+          Обновить историю
+        </button>
+      </div>
+
+      <div id="history-alert" class="alert"></div>
+      <div id="history-table" class="details"></div>
+
+      <div
+        id="history-selector-block"
+        class="field"
+        style="display: none; margin-top: 25px;"
+      >
+        <label for="history-run-select">
+          Открыть сохранённый результат
+        </label>
+
+        <select id="history-run-select"></select>
+      </div>
+
+      <div id="history-details" class="details"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+"use strict";
+
+const state = {
+  dates: [],
+  history: [],
+  activeDailyRunId: null,
+  dailyPollTimer: null,
+};
+
+const resultColumns = [
+  {
+    key: "risk_rank",
+    label: "risk_rank",
+  },
+  {
+    key: "row_id",
+    label: "row_id",
+  },
+  {
+    key: "production_day",
+    label: "production_day",
+  },
+  {
+    key: "raw_score",
+    label: "raw_score",
+    format: formatNumber,
+  },
+  {
+    key: "probability",
+    label: "probability",
+    format: formatNumber,
+  },
+  {
+    key: "risk",
+    label: "risk",
+    format: riskBadge,
+  },
+  {
+    key: "predicted_class",
+    label: "predicted_class",
+  },
+  {
+    key: "actual_class",
+    label: "actual_class",
+  },
+  {
+    key: "prediction_correct",
+    label: "prediction_correct",
+    format: booleanLabel,
+  },
+  {
+    key: "is_top_k",
+    label: "is_top_k",
+    format: booleanLabel,
+  },
+];
+
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+function formatPercent(value, digits = 2) {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
+  return `${Number(value).toFixed(digits)}%`;
+}
+
+
+function formatProbability(value, digits = 2) {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
+  return `${(Number(value) * 100).toFixed(digits)}%`;
+}
+
+
+function formatNumber(value, digits = 4) {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
+  return Number(value).toFixed(digits);
+}
+
+
+function classLabel(value) {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
+  return Number(value) === 1
+    ? "Дефект"
+    : "Норма";
+}
+
+
+function booleanLabel(value) {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
+  return value
+    ? "Да"
+    : "Нет";
+}
+
+
+function riskBadge(value) {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
+  const danger = value === "Высокий";
+
+  return `
+    <span class="badge ${
+      danger
+        ? "badge-defect"
+        : "badge-normal"
+    }">
+      ${escapeHtml(value)}
+    </span>
+  `;
+}
+
+
+function metricTone(label, value) {
+  if (
+    label === "Уровень риска"
+    || label === "Прогноз"
+    || label === "Факт"
+  ) {
+    if (
+      String(value).includes("Дефект")
+      || String(value).includes("Высокий")
+    ) {
+      return "metric-danger";
+    }
+
+    if (
+      String(value).includes("Норма")
+      || String(value).includes("Обычный")
+    ) {
+      return "metric-success";
+    }
+  }
+
+  if (label === "Совпадение") {
+    if (value === "Да") {
+      return "metric-success";
+    }
+
+    if (value === "Нет") {
+      return "metric-danger";
+    }
+  }
+
+  return "";
+}
+
+
+function metricCard(label, value) {
+  return `
+    <div class="metric ${metricTone(label, value)}">
+      <div class="metric-label">
+        ${escapeHtml(label)}
+      </div>
+
+      <div class="metric-value">
+        ${escapeHtml(value)}
+      </div>
+    </div>
+  `;
+}
+
+
+async function apiRequest(path, options = {}) {
+  const response = await fetch(
+    path,
+    {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+    },
+  );
+
+  if (!response.ok) {
+    let detail = await response.text();
+
+    try {
+      detail = JSON.parse(detail).detail ?? detail;
+    } catch (_) {
+      // Сохраняем исходный текст ответа.
+    }
+
+    throw new Error(
+      `API ${response.status}: ${detail}`,
+    );
+  }
+
+  return response.json();
+}
+
+
+function showAlert(
+  elementId,
+  message,
+  type = "info",
+  loading = false,
+) {
+  const element = document.getElementById(elementId);
+
+  element.className = `alert visible ${type}`;
+
+  element.innerHTML = loading
+    ? `<span class="loader"></span>${escapeHtml(message)}`
+    : escapeHtml(message);
+}
+
+
+function hideAlert(elementId) {
+  const element = document.getElementById(elementId);
+
+  element.className = "alert";
+  element.textContent = "";
+}
+
+
+function renderTable(rows, columns) {
+  if (!rows || rows.length === 0) {
+    return `<p class="muted">Данные отсутствуют.</p>`;
+  }
+
+  const header = columns
+    .map(
+      (column) => `
+        <th>${escapeHtml(column.label)}</th>
+      `,
+    )
+    .join("");
+
+  const body = rows
+    .map(
+      (row) => `
+        <tr>
+          ${columns
+            .map(
+              (column) => {
+                const value = column.format
+                  ? column.format(
+                      row[column.key],
+                      row,
+                    )
+                  : escapeHtml(
+                      row[column.key] ?? "—",
+                    );
+
+                return `<td>${value}</td>`;
+              },
+            )
+            .join("")}
+        </tr>
+      `,
+    )
+    .join("");
+
+  return `
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>${header}</tr>
+        </thead>
+
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+
+function singleColumns() {
+  return resultColumns.filter(
+    (column) => ![
+      "risk_rank",
+      "is_top_k",
+    ].includes(column.key),
+  );
+}
+
+
+function renderSinglePrediction(payload) {
+  const { run, result } = payload;
+
+  const metrics = [
+    metricCard(
+      "Калиброванная вероятность",
+      formatProbability(result.probability),
+    ),
+    metricCard(
+      "Уровень риска",
+      result.risk ?? "—",
+    ),
+    metricCard(
+      "Прогноз",
+      classLabel(result.predicted_class),
+    ),
+    metricCard(
+      "Факт",
+      classLabel(result.actual_class),
+    ),
+    metricCard(
+      "Совпадение",
+      booleanLabel(result.prediction_correct),
+    ),
+  ].join("");
+
+  document.getElementById(
+    "single-result",
+  ).innerHTML = `
+    <h3>Последний одиночный прогноз</h3>
+
+    <div class="alert visible success">
+      Прогноз сохранён в PostgreSQL:
+      run_id=${escapeHtml(run.id)},
+      строка=${escapeHtml(result.row_id)}
+    </div>
+
+    <div class="metrics">
+      ${metrics}
+    </div>
+
+    ${renderTable(
+      [result],
+      singleColumns(),
+    )}
+  `;
+}
+
+
+function renderRunMetrics(run) {
+  const errorValue = (
+    run.absolute_error_pp === null
+    || run.absolute_error_pp === undefined
+  )
+    ? "—"
+    : `${Number(
+        run.absolute_error_pp,
+      ).toFixed(2)} п.п.`;
+
+  return `
+    <div class="metrics">
+      ${metricCard(
+        "Строк",
+        run.row_count ?? 0,
+      )}
+
+      ${metricCard(
+        "Прогноз дня",
+        formatPercent(
+          run.predicted_defect_rate,
+        ),
+      )}
+
+      ${metricCard(
+        "Факт дня",
+        formatPercent(
+          run.actual_defect_rate,
+        ),
+      )}
+
+      ${metricCard(
+        "Абсолютная ошибка",
+        errorValue,
+      )}
+
+      ${metricCard(
+        "Риск-зона",
+        run.flagged_count ?? 0,
+      )}
+
+      ${metricCard(
+        "Доля риск-зоны",
+        run.flagged_share == null
+          ? "—"
+          : formatPercent(
+              Number(run.flagged_share) * 100,
+            ),
+      )}
+    </div>
+  `;
+}
+
+
+async function renderDailyResult(run) {
+  const [topPayload, allPayload] = await Promise.all([
+    apiRequest(
+      `/api/predictions/runs/${run.id}/results?top_only=true&limit=10000`,
+    ),
+    apiRequest(
+      `/api/predictions/runs/${run.id}/results?limit=10000`,
+    ),
+  ]);
+
+  document.getElementById(
+    "daily-result",
+  ).innerHTML = `
+    <h3>
+      Результаты запуска №${escapeHtml(run.id)}
+    </h3>
+
+    ${renderRunMetrics(run)}
+
+    <h3>
+      Top-10% наиболее рискованной продукции
+    </h3>
+
+    ${renderTable(
+      topPayload.results,
+      resultColumns.filter(
+        (column) => column.key !== "is_top_k",
+      ),
+    )}
+
+    <h3>
+      Все строки выбранного дня
+    </h3>
+
+    ${renderTable(
+      allPayload.results,
+      resultColumns,
+    )}
+  `;
+}
+
+
+function setStatus(elementId, text, ok) {
+  const element = document.getElementById(elementId);
+
+  element.textContent = text;
+
+  element.className = `
+    sidebar-value status-pill ${
+      ok
+        ? "status-ok"
+        : "status-error"
+    }
+  `;
+}
+
+
+async function loadServiceInfo() {
+  try {
+    const [model, health] = await Promise.all([
+      apiRequest("/api/model"),
+      apiRequest("/api/health"),
+    ]);
+
+    document.getElementById(
+      "model-name",
+    ).textContent = model.model_name;
+
+    document.getElementById(
+      "model-version",
+    ).textContent = model.model_version;
+
+    document.getElementById(
+      "feature-count",
+    ).textContent = model.feature_count;
+
+    document.getElementById(
+      "model-threshold",
+    ).textContent = Number(
+      model.threshold,
+    ).toFixed(4);
+
+    setStatus(
+      "service-status",
+      health.status,
+      health.status === "ok",
+    );
+
+    setStatus(
+      "rabbitmq-status",
+      health.rabbitmq
+        ? "ok"
+        : "нет связи",
+      Boolean(health.rabbitmq),
+    );
+
+  } catch (error) {
+    setStatus(
+      "service-status",
+      "Ошибка",
+      false,
+    );
+
+    setStatus(
+      "rabbitmq-status",
+      "Ошибка",
+      false,
+    );
+
+    console.error(error);
+  }
+}
+
+
+async function loadDates() {
+  const select = document.getElementById(
+    "production-day",
+  );
+
+  try {
+    const payload = await apiRequest(
+      "/api/data/dates",
+    );
+
+    state.dates = payload.dates ?? [];
+
+    select.innerHTML = state.dates.length
+      ? state.dates
+          .map(
+            (item) => `
+              <option
+                value="${escapeHtml(
+                  item.production_day,
+                )}"
+              >
+                ${escapeHtml(
+                  item.production_day,
+                )}
+              </option>
+            `,
+          )
+          .join("")
+      : `<option value="">Нет доступных дат</option>`;
+
+    updateSelectedDayCount();
+
+  } catch (error) {
+    select.innerHTML = `
+      <option value="">
+        Ошибка загрузки
+      </option>
+    `;
+
+    showAlert(
+      "daily-alert",
+      error.message,
+      "error",
+    );
+  }
+}
+
+
+function updateSelectedDayCount() {
+  const selectedDay = document.getElementById(
+    "production-day",
+  ).value;
+
+  const selected = state.dates.find(
+    (item) => item.production_day === selectedDay,
+  );
+
+  document.getElementById(
+    "day-row-count",
+  ).textContent = selected
+    ? `В выбранном дне: ${selected.row_count} строк`
+    : "";
+}
+
+
+async function runSinglePrediction() {
+  const button = document.getElementById(
+    "single-button",
+  );
+
+  button.disabled = true;
+
+  showAlert(
+    "single-alert",
+    "Выполняется прогноз...",
+    "info",
+    true,
+  );
+
+  try {
+    const payload = await apiRequest(
+      "/api/predictions/random-row",
+      {
+        method: "POST",
+      },
+    );
+
+    hideAlert("single-alert");
+    renderSinglePrediction(payload);
+
+  } catch (error) {
+    showAlert(
+      "single-alert",
+      error.message,
+      "error",
+    );
+
+  } finally {
+    button.disabled = false;
+  }
+}
+
+
+async function pollDailyRun(runId) {
+  state.activeDailyRunId = runId;
+
+  clearTimeout(
+    state.dailyPollTimer,
+  );
+
+  const checkStatus = async () => {
+    try {
+      const run = await apiRequest(
+        `/api/predictions/runs/${runId}`,
+      );
+
+      if (
+        run.status === "queued"
+        || run.status === "processing"
+      ) {
+        showAlert(
+          "daily-alert",
+          `Запуск №${runId}: ${run.status}`,
+          "info",
+          true,
+        );
+
+        /*
+         * Следующая проверка запускается только
+         * после завершения текущего запроса.
+         * Запросы не накладываются друг на друга.
+         */
+        state.dailyPollTimer = setTimeout(
+          checkStatus,
+          1000,
+        );
+
+        return;
+      }
+
+      state.dailyPollTimer = null;
+
+      if (run.status === "completed") {
+        showAlert(
+          "daily-alert",
+          `Запуск №${runId} завершён. Worker: ${
+            run.worker_id ?? "unknown"
+          }`,
+          "success",
+        );
+
+        await renderDailyResult(run);
+        return;
+      }
+
+      showAlert(
+        "daily-alert",
+        run.error_message
+          ?? `Запуск завершился со статусом ${run.status}`,
+        "error",
+      );
+
+    } catch (error) {
+      state.dailyPollTimer = null;
+
+      showAlert(
+        "daily-alert",
+        error.message,
+        "error",
+      );
+    }
+  };
+
+  await checkStatus();
+}
+
+
+async function runDailyPrediction() {
+  const selectedDay = document.getElementById(
+    "production-day",
+  ).value;
+
+  if (!selectedDay) {
+    showAlert(
+      "daily-alert",
+      "Выберите производственный день.",
+      "error",
+    );
+
+    return;
+  }
+
+  const button = document.getElementById(
+    "daily-button",
+  );
+
+  button.disabled = true;
+
+  showAlert(
+    "daily-alert",
+    "Задача ставится в очередь...",
+    "info",
+    true,
+  );
+
+  document.getElementById(
+    "daily-result",
+  ).innerHTML = "";
+
+  try {
+    const run = await apiRequest(
+      "/api/predictions/day",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          production_day: selectedDay,
+        }),
+      },
+    );
+
+    await pollDailyRun(run.id);
+
+  } catch (error) {
+    showAlert(
+      "daily-alert",
+      error.message,
+      "error",
+    );
+
+  } finally {
+    button.disabled = false;
+  }
+}
+
+
+function historyColumns() {
+  return [
+    {
+      key: "id",
+      label: "id",
+    },
+    {
+      key: "run_type",
+      label: "run_type",
+    },
+    {
+      key: "production_day",
+      label: "production_day",
+    },
+    {
+      key: "status",
+      label: "status",
+    },
+    {
+      key: "row_count",
+      label: "row_count",
+    },
+    {
+      key: "predicted_defect_rate",
+      label: "predicted_defect_rate",
+      format: formatNumber,
+    },
+    {
+      key: "actual_defect_rate",
+      label: "actual_defect_rate",
+      format: formatNumber,
+    },
+    {
+      key: "absolute_error_pp",
+      label: "absolute_error_pp",
+      format: formatNumber,
+    },
+    {
+      key: "worker_id",
+      label: "worker_id",
+    },
+    {
+      key: "created_at",
+      label: "created_at",
+    },
+  ];
+}
+
+
+async function loadHistory() {
+  showAlert(
+    "history-alert",
+    "Загрузка истории...",
+    "info",
+    true,
+  );
+
+  try {
+    const payload = await apiRequest(
+      "/api/predictions/runs?limit=100",
+    );
+
+    state.history = payload.runs ?? [];
+
+    hideAlert("history-alert");
+
+    document.getElementById(
+      "history-table",
+    ).innerHTML = renderTable(
+      state.history,
+      historyColumns(),
+    );
+
+    const selectorBlock = document.getElementById(
+      "history-selector-block",
+    );
+
+    const select = document.getElementById(
+      "history-run-select",
+    );
+
+    if (state.history.length === 0) {
+      selectorBlock.style.display = "none";
+
+      document.getElementById(
+        "history-details",
+      ).innerHTML = "";
+
+      return;
+    }
+
+    selectorBlock.style.display = "block";
+
+    select.innerHTML = state.history
+      .map(
+        (run) => `
+          <option value="${run.id}">
+            Запуск №${run.id}
+            — ${escapeHtml(run.run_type)}
+            — ${escapeHtml(run.status)}
+          </option>
+        `,
+      )
+      .join("");
+
+    await loadHistoryDetails(
+      Number(select.value),
+    );
+
+  } catch (error) {
+    showAlert(
+      "history-alert",
+      error.message,
+      "error",
+    );
+  }
+}
+
+
+async function loadHistoryDetails(runId) {
+  const run = state.history.find(
+    (item) => Number(item.id) === Number(runId),
+  );
+
+  if (!run) {
+    return;
+  }
+
+  const container = document.getElementById(
+    "history-details",
+  );
+
+  container.innerHTML = `
+    <p class="muted">
+      Загрузка деталей запуска №${escapeHtml(runId)}...
+    </p>
+  `;
+
+  if (
+    run.status === "queued"
+    || run.status === "processing"
+  ) {
+    container.innerHTML = `
+      <h3>
+        Детали запуска №${escapeHtml(run.id)}
+      </h3>
+
+      <div class="alert visible info">
+        Текущий статус: ${escapeHtml(run.status)}
+      </div>
+    `;
+
+    return;
+  }
+
+  if (run.status === "failed") {
+    container.innerHTML = `
+      <h3>
+        Детали запуска №${escapeHtml(run.id)}
+      </h3>
+
+      <div class="alert visible error">
+        ${escapeHtml(
+          run.error_message
+          ?? "Запуск завершился ошибкой.",
+        )}
+      </div>
+    `;
+
+    return;
+  }
+
+  try {
+    const payload = await apiRequest(
+      `/api/predictions/runs/${run.id}/results?limit=500`,
+    );
+
+    const results = payload.results ?? [];
+
+    if (results.length === 0) {
+      container.innerHTML = `
+        <p class="muted">
+          Для запуска нет результатов.
+        </p>
+      `;
+
+      return;
+    }
+
+    if (run.run_type === "single") {
+      const result = results[0];
+
+      container.innerHTML = `
+        <h3>
+          Детали запуска №${escapeHtml(run.id)}
+        </h3>
+
+        <div class="metrics">
+          ${metricCard(
+            "Калиброванная вероятность",
+            formatProbability(result.probability),
+          )}
+
+          ${metricCard(
+            "Уровень риска",
+            result.risk ?? "—",
+          )}
+
+          ${metricCard(
+            "Прогноз",
+            classLabel(result.predicted_class),
+          )}
+
+          ${metricCard(
+            "Факт",
+            classLabel(result.actual_class),
+          )}
+
+          ${metricCard(
+            "Совпадение",
+            booleanLabel(result.prediction_correct),
+          )}
+        </div>
+
+        ${renderTable(
+          [result],
+          singleColumns(),
+        )}
+      `;
+
+      return;
+    }
+
+    container.innerHTML = `
+      <h3>
+        Детали запуска №${escapeHtml(run.id)}
+      </h3>
+
+      ${renderRunMetrics(run)}
+
+      ${renderTable(
+        results,
+        resultColumns,
+      )}
+    `;
+
+  } catch (error) {
+    container.innerHTML = `
+      <div class="alert visible error">
+        ${escapeHtml(error.message)}
+      </div>
+    `;
+  }
+}
+
+
+document
+  .querySelectorAll(".tab-button")
+  .forEach(
+    (button) => {
+      button.addEventListener(
+        "click",
+        async () => {
+          document
+            .querySelectorAll(".tab-button")
+            .forEach(
+              (item) => item.classList.remove("active"),
+            );
+
+          document
+            .querySelectorAll(".page")
+            .forEach(
+              (item) => item.classList.remove("active"),
+            );
+
+          button.classList.add("active");
+
+          document
+            .getElementById(button.dataset.page)
+            .classList.add("active");
+
+          if (button.dataset.page === "history-page") {
+            await loadHistory();
+          }
+        },
+      );
+    },
+  );
+
+
+document
+  .getElementById("single-button")
+  .addEventListener(
+    "click",
+    runSinglePrediction,
+  );
+
+
+document
+  .getElementById("daily-button")
+  .addEventListener(
+    "click",
+    runDailyPrediction,
+  );
+
+
+document
+  .getElementById("production-day")
+  .addEventListener(
+    "change",
+    updateSelectedDayCount,
+  );
+
+
+document
+  .getElementById("history-refresh-button")
+  .addEventListener(
+    "click",
+    loadHistory,
+  );
+
+
+document
+  .getElementById("history-run-select")
+  .addEventListener(
+    "change",
+    (event) => loadHistoryDetails(
+      Number(event.target.value),
+    ),
+  );
+
+
+Promise.all([
+  loadServiceInfo(),
+  loadDates(),
+]);
+</script>
+</body>
+</html>

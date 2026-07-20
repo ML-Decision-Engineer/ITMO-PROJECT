@@ -1,0 +1,15 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+venv
+README.md
+DEFENSE.md
+repository_scan*.md
+
+# Model and dataset are mounted at runtime, not copied into images
+artifacts/
+data_mvp.csv
+MODEL_WORK.py
