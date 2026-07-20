@@ -59,7 +59,7 @@ HTML UI     FastAPI
 ```text
 Homework_8/
 ├── MODEL_WORK.py
-├── data_mvp.csv
+├── data_mvp_demo.csv
 ├── requirements_ml.txt
 ├── frontend/
 │   └── index.html
@@ -79,7 +79,7 @@ artifacts/
 
 ```bash
 test -f artifacts/model_bundle.joblib
-test -f data_mvp.csv
+test -f data_mvp_demo.csv
 test -f MODEL_WORK.py
 test -f frontend/index.html
 ```
@@ -132,7 +132,7 @@ predicted_daily_rate = mean(calibrated_probability) * 100
 
 ## 4. Демонстрационный датасет
 
-`data_mvp.csv` содержит:
+`data_mvp_demo.csv` содержит:
 
 * `row_id`;
 * `production_time`;
@@ -247,7 +247,7 @@ docker compose down -v
 
 1. Открыть вкладку «Одиночный прогноз».
 2. Нажать кнопку выполнения прогноза.
-3. Сервис выбирает случайную строку HOLDOUT-датасета.
+3. Сервис выбирает случайную строку синтетического демонстрационного датасета.
 4. Пользователь получает raw score, вероятность, прогноз, факт и совпадение.
 5. Запуск и результат сохраняются в PostgreSQL.
 
