@@ -16,7 +16,7 @@ x-backend-runtime: &backend-runtime
 
   volumes:
     - ./MODEL_WORK.py:/project/MODEL_WORK.py:ro
-    - ./data_mvp.csv:/project/data_mvp.csv:ro
+    - ./data_mvp_demo.csv:/project/data_mvp.csv:ro
     - ./artifacts:/project/artifacts:ro
 
   depends_on:
